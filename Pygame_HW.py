@@ -56,12 +56,13 @@ class Player(pygame.sprite.Sprite):
             self.is_jumping = True
             self.jump_velocity = -self.jump_speed  # 設置跳躍速度為負值
 
-    def update(self, keys):
+    def update(self, keys, background):
         self.moving = False  # 每次更新時重置移動狀態
 
         if pygame.K_d in keys:
-            self.rect.x += PLAYER_SPEED
             self.moving = True
+            if  background.image1 == background_frames[4] and background.rect1.right <= WIDTH or self.rect.x !=200 :
+                self.rect.x += PLAYER_SPEED
         if pygame.K_a in keys:
             self.rect.x -= PLAYER_SPEED
             self.moving = True
@@ -100,38 +101,51 @@ class Background:
         self.frame_index = 0
         self.image1 = self.frames[self.frame_index]
         self.image2 = self.frames[(self.frame_index + 1) % len(self.frames)]
+        self.frame_index = 1
         self.rect1 = self.image1.get_rect(topleft=(0, 0))  # 第一張圖片的初始位置
         self.rect2 = self.image2.get_rect(topleft=(WIDTH, 0))  # 第二張圖片的初始位置在右側
 
     def update(self, player):
         # 只有當玩家移動時才更新背景位置
         keys = pygame.key.get_pressed()
-        if  keys[pygame.K_d]:
-            self.rect1.x -= PLAYER_SPEED*2
-            self.rect2.x -= PLAYER_SPEED*2
-        if  keys[pygame.K_a]:
-            self.rect1.x += PLAYER_SPEED*2
-            self.rect2.x += PLAYER_SPEED*2
+        if self.image2 != self.frames[5] :
+            if  keys[pygame.K_d]:
+                self.rect1.x -= PLAYER_SPEED*2
+                self.rect2.x -= PLAYER_SPEED*2
+                if self.rect1.right < 0:  # 當第一張圖片完全移出畫面
+                    self.frame_index = (self.frame_index + 1) % len(self.frames)
+                    self.image1 = self.frames[self.frame_index]
+                    self.rect1.x = self.rect2.right  # 將第一張圖片的位置設置為第二張圖片的右側
 
-        # 檢查是否需要切換到下一張圖片
-        if self.rect1.right < 0:  # 當第一張圖片完全移出畫面
-            self.frame_index = (self.frame_index + 1) % len(self.frames)
-            self.image1 = self.frames[self.frame_index]
-            self.rect1.x = self.rect2.right  # 將第一張圖片的位置設置為第二張圖片的右側
-
-        if self.rect2.right < 0:  # 當第二張圖片完全移出畫面
-            self.frame_index = (self.frame_index + 1) % len(self.frames)
-            self.image2 = self.frames[self.frame_index]
-            self.rect2.x = self.rect1.right  # 將第二張圖片的位置設置為第一張圖片的右側
+                if self.rect2.right < 0:  # 當第二張圖片完全移出畫面
+                    self.frame_index = (self.frame_index + 1) % len(self.frames)
+                    self.image2 = self.frames[self.frame_index]
+                    self.rect2.x = self.rect1.right  # 將第二張圖片的位置設置為第一張圖片的右側
 
     def draw(self, surface):
         surface.blit(self.image1, self.rect1.topleft)  # 畫第一張背景
         surface.blit(self.image2, self.rect2.topleft)  # 畫第二張背景
 
+class Obstacle(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((175,50), pygame.SRCALPHA)  # 创建一个支持透明度的表面
+        self.image.fill((0, 0, 0, 128))  # 填充颜色和透明度
+        self.rect = self.image.get_rect()  # 设置位置
+        self.rect.center = (200, 585)
+
+    def update(self, keys, background):
+         self.rect.center = (200, 585)  # 長方形位置
+        
+
+
+
 # 創建玩家和背景
 all_sprites = pygame.sprite.Group()
 player = Player()
+obstacle = Obstacle()
 all_sprites.add(player)
+all_sprites.add(obstacle)
 
 background = Background(background_frames)
 
@@ -183,14 +197,13 @@ while running:
             keys_pressed.discard(event.key)  # 當按鍵被釋放時，將其從集合中移除
 
     # 更新遊戲畫面
-    all_sprites.update(keys_pressed)  # 將按鍵狀態傳遞給玩家更新方法
+    all_sprites.update(keys_pressed, background)  # 將按鍵狀態和背景傳遞給玩家更新方法
     background.update(player)  # 更新背景，傳入玩家對象
 
     # 畫面渲染
     screen.fill(BLACK)
     background.draw(screen)  # 畫背景
     all_sprites.draw(screen)  # 畫玩家
-
     pygame.display.flip()
 
 pygame.quit()
