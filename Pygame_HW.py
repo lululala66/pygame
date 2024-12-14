@@ -36,46 +36,97 @@ player_frames = load_frames("player_frames", PLAYER_SIZE)
 background_frames = load_frames("background_frames", (WIDTH, HEIGHT))
 
 # 定義玩家類
-class Player(pygame.sprite.Sprite):
+class Player:
     def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
         self.frames = player_frames
         self.frame_index = 0
         self.image = self.frames[self.frame_index]
         self.rect = self.image.get_rect()
-        self.rect.center = (200, 585)
+        self.rect.center = (200, 535)
         self.animation_timer = 0
         self.frame_rate = 6
         self.moving = False
-        self.is_jumping = False  # 跳躍狀態
-        self.jump_speed = 40  # 跳躍速度
-        self.gravity = 5  # 重力
+        self.is_jumping = False
+        self.jump_speed = 15
+        self.gravity = 1
+        self.jump_velocity = 0
+        self.stop = False
 
     def jump(self):
-        if not self.is_jumping:  # 確保只有在不跳躍的情況下才能跳躍
+        if not self.is_jumping:  # 僅在地面上允許跳躍
             self.is_jumping = True
-            self.jump_velocity = -self.jump_speed  # 設置跳躍速度為負值
+            self.jump_velocity = -self.jump_speed
 
-    def update(self, keys, background):
-        self.moving = False  # 每次更新時重置移動狀態
+    def update(self, keys, background, obstacles):
+        self.moving = False
+        on_ground = False
 
-        if pygame.K_d in keys:
+        # 垂直移動與重力
+        self.jump_velocity += self.gravity
+        self.rect.y += self.jump_velocity
+
+        # 障礙物碰撞檢測
+        for obstacle in obstacles:
+            # 玩家從上方接觸障礙物（落在障礙物上）
+            if (
+                self.rect.colliderect(obstacle.rect)
+                and self.rect.bottom >= obstacle.rect.top
+                and self.rect.bottom - self.jump_velocity <= obstacle.rect.top
+            ):
+                self.rect.bottom = obstacle.rect.top
+                self.is_jumping = False
+                self.jump_velocity = 0
+                on_ground = True
+
+            # 玩家頭部碰撞障礙物底部
+            if (
+                self.rect.colliderect(obstacle.rect)
+                and self.rect.top <= obstacle.rect.bottom
+                and self.rect.top - self.jump_velocity >= obstacle.rect.bottom
+            ):
+                self.rect.top = obstacle.rect.bottom  # 防止玩家穿過障礙物
+                self.jump_velocity = 0  # 停止向上的速度
+
+            # 玩家從左側撞到障礙物
+            if (
+                self.rect.colliderect(obstacle.rect)
+                and self.rect.right >= obstacle.rect.left
+                and self.rect.left < obstacle.rect.left
+                and self.rect.bottom > obstacle.rect.top
+                and self.rect.top < obstacle.rect.bottom
+            ):
+                self.rect.right = obstacle.rect.left  # 停止在障礙物的左側
+                self.stop = True
+
+            # 玩家從右側撞到障礙物
+            if (
+                self.rect.colliderect(obstacle.rect)
+                and self.rect.left <= obstacle.rect.right
+                and self.rect.right > obstacle.rect.right
+                and self.rect.bottom > obstacle.rect.top
+                and self.rect.top < obstacle.rect.bottom
+            ):
+                self.rect.left = obstacle.rect.right  # 停止在障礙物的右側
+                self.stop = True
+        # 地面碰撞
+        if self.rect.bottom >= HEIGHT:
+            self.rect.bottom = HEIGHT
+            self.is_jumping = False
+            self.jump_velocity = 0
+            on_ground = True
+            self.stop = False
+
+        if not on_ground:
+            self.is_jumping = True
+
+        # 水平移動
+        if pygame.K_d in keys :
             self.moving = True
-            if  background.image1 == background_frames[4] and background.rect1.right <= WIDTH or self.rect.x !=200 :
+            if self.rect.x < 200 or background.backgrounds[4][1].x <= 0:
                 self.rect.x += PLAYER_SPEED
         if pygame.K_a in keys:
             self.rect.x -= PLAYER_SPEED
             self.moving = True
-
-        # 處理跳躍邏輯
-        if self.is_jumping:
-            self.rect.y += self.jump_velocity  # 更新 y 位置
-            self.jump_velocity += self.gravity  # 增加重力影響
-
-            # 檢查是否回到地面
-            if self.rect.y >= 555:  # 假設地面在 y=585
-                self.rect.y = 555  # 確保角色不會掉出地面
-                self.is_jumping = False  # 跳躍結束
 
         # 邊界檢查
         if self.rect.right > WIDTH:
@@ -83,7 +134,7 @@ class Player(pygame.sprite.Sprite):
         if self.rect.left < 0:
             self.rect.left = 0
 
-        # 更新動畫幀
+        # 動畫更新
         if self.moving:
             self.animation_timer += clock.get_time()
             if self.animation_timer > 1000 // self.frame_rate:
@@ -94,59 +145,56 @@ class Player(pygame.sprite.Sprite):
 
         self.image = self.frames[self.frame_index]
 
+    def draw(self, screen):
+        screen.blit(self.image, self.rect.topleft)
+
+
 # 定義背景類
 class Background:
     def __init__(self, frames):
         self.frames = frames
-        self.frame_index = 0
-        self.image1 = self.frames[self.frame_index]
-        self.image2 = self.frames[(self.frame_index + 1) % len(self.frames)]
-        self.frame_index = 1
-        self.rect1 = self.image1.get_rect(topleft=(0, 0))  # 第一張圖片的初始位置
-        self.rect2 = self.image2.get_rect(topleft=(WIDTH, 0))  # 第二張圖片的初始位置在右側
+        self.frame_index = 5
+        self.backgrounds = []
+        for i in range(self.frame_index):
+            background_image = self.frames[i % len(self.frames)]
+            image_rect = background_image.get_rect(topleft=(i * WIDTH, 0))
+            self.backgrounds.append((background_image, image_rect))
 
     def update(self, player):
-        # 只有當玩家移動時才更新背景位置
+    # 檢查鍵盤輸入
         keys = pygame.key.get_pressed()
-        if self.image2 != self.frames[5] :
-            if  keys[pygame.K_d]:
-                self.rect1.x -= PLAYER_SPEED*2
-                self.rect2.x -= PLAYER_SPEED*2
-                if self.rect1.right < 0:  # 當第一張圖片完全移出畫面
-                    self.frame_index = (self.frame_index + 1) % len(self.frames)
-                    self.image1 = self.frames[self.frame_index]
-                    self.rect1.x = self.rect2.right  # 將第一張圖片的位置設置為第二張圖片的右側
-
-                if self.rect2.right < 0:  # 當第二張圖片完全移出畫面
-                    self.frame_index = (self.frame_index + 1) % len(self.frames)
-                    self.image2 = self.frames[self.frame_index]
-                    self.rect2.x = self.rect1.right  # 將第二張圖片的位置設置為第一張圖片的右側
+        # 確保背景移動只在按下 D 鍵時進行
+        if keys[pygame.K_d] and self.backgrounds[4][1].x >0 and player.stop == False:
+             for i, (background_image, rect) in enumerate(self.backgrounds):
+                rect.x -= PLAYER_SPEED * 2
 
     def draw(self, surface):
-        surface.blit(self.image1, self.rect1.topleft)  # 畫第一張背景
-        surface.blit(self.image2, self.rect2.topleft)  # 畫第二張背景
+        for background_image, rect in self.backgrounds:
+            surface.blit(background_image, rect.topleft)
 
-class Obstacle(pygame.sprite.Sprite):
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((175,50), pygame.SRCALPHA)  # 创建一个支持透明度的表面
+class Obstacle:
+    def __init__(self, size, x, y):
+        self.image = pygame.Surface(size, pygame.SRCALPHA)  # 创建一个支持透明度的表面
         self.image.fill((0, 0, 0, 128))  # 填充颜色和透明度
         self.rect = self.image.get_rect()  # 设置位置
-        self.rect.center = (200, 585)
+        self.rect.topleft = (x, y)
 
-    def update(self, keys, background):
-         self.rect.center = (200, 585)  # 長方形位置
-        
+    def update(self, player):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_d]  and player.stop == False:
+            self.rect.x -= PLAYER_SPEED * 2
+       
 
-
+    def draw(self, screen):
+        screen.blit(self.image, self.rect.topleft)
 
 # 創建玩家和背景
-all_sprites = pygame.sprite.Group()
+obstacles = []
 player = Player()
-obstacle = Obstacle()
-all_sprites.add(player)
-all_sprites.add(obstacle)
-
+obstacles.append(Obstacle((WIDTH+480, 50), 0, 610))
+obstacles.append(Obstacle((315, 45), 480, 430))
+obstacles.append(Obstacle((265, 43), 735, 291))
+obstacles.append(Obstacle((268, 43), 1275, 375))
 background = Background(background_frames)
 
 class EntryScreen:
@@ -175,12 +223,12 @@ class EntryScreen:
 
 entry_screen = EntryScreen(screen, "entryscream.png", None)
 
-# 調用顯示初始畫面的方法
+# 顯示初始畫面
 entry_screen.show()
 
 # 遊戲主循環
 running = True
-keys_pressed = set()  # 用來跟蹤當前按下的鍵
+keys_pressed = set() 
 
 while running:
     clock.tick(FPS)
@@ -190,20 +238,23 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
-            keys_pressed.add(event.key)  # 當按鍵被按下時，將其添加到集合中
-            if event.key == pygame.K_SPACE:  # 檢查是否按下空白鍵
+            keys_pressed.add(event.key)
+            if event.key == pygame.K_SPACE:  
                 player.jump()  # 調用玩家的跳躍方法
         if event.type == pygame.KEYUP:
-            keys_pressed.discard(event.key)  # 當按鍵被釋放時，將其從集合中移除
+            keys_pressed.discard(event.key)
 
     # 更新遊戲畫面
-    all_sprites.update(keys_pressed, background)  # 將按鍵狀態和背景傳遞給玩家更新方法
-    background.update(player)  # 更新背景，傳入玩家對象
-
+    player.update(keys_pressed, background, obstacles) 
+    background.update(player)  
+    for obstacle in obstacles:
+        obstacle.update(player)
     # 畫面渲染
     screen.fill(BLACK)
-    background.draw(screen)  # 畫背景
-    all_sprites.draw(screen)  # 畫玩家
+    background.draw(screen)  
+    for obstacle in obstacles:
+        obstacle.draw(screen)
+    player.draw(screen)
     pygame.display.flip()
 
 pygame.quit()
