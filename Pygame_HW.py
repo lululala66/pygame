@@ -7,7 +7,7 @@ WIDTH, HEIGHT = 1000, 700
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 PLAYER_SPEED = 8
-PLAYER_SIZE = (50, 50)
+PLAYER_SIZE = (50, 70)
 POINT = 0
 START_TIME = 100.0
 
@@ -65,11 +65,11 @@ class Player:
         self.stop = False
         self.is_game_over = False
         self.game_reach = False
-        self.is_on_flagpole = False  # 玩家是否在旗桿上
-        self.sliding_down = False  # 玩家是否正在下滑旗桿
+        self.is_on_flagpole = False  
+        self.sliding_down = False  
 
     def jump(self):
-        if not self.is_jumping and not self.is_on_flagpole:  # 僅在地面上允許跳躍
+        if not self.is_jumping and not self.is_on_flagpole:  
             self.is_jumping = True
             jump_sound.play()
             self.jump_velocity = -self.jump_speed
@@ -128,7 +128,7 @@ class Player:
             self.rect.y = tap.rect.y + 40
             self.rect.x = tap.rect.x + 20
       
-        for monster in monsters[:]:  # 遍历怪物
+        for monster in monsters[:]: 
             if self.rect.colliderect(monster.rect):
                 # 玩家的底部碰到怪物的頭
                 if self.jump_velocity > 0 and self.rect.bottom > monster.rect.top and self.rect.bottom - self.jump_velocity <= monster.rect.top:
@@ -315,7 +315,7 @@ class Coin:
 
     def update(self, player, background):
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_d] and player.stop == False:
+        if keys[pygame.K_d] and player.stop == False and player.rect.x >100:
             if background.backgrounds[4][1].x > 0:
                 self.rect.x -= PLAYER_SPEED 
 
@@ -479,9 +479,9 @@ while running:
     for monster in monsters:
         monster.draw(screen)
     toilet.draw(screen)
-    player.draw(screen)
     tap.draw(screen)
     flag.draw(screen)
+    player.draw(screen)
     draw_text(screen, "SCRODE:" + str(POINT), 18, WIDTH - 70, 10)
     draw_text(screen, "TIME:", 18, WIDTH - 230, 10)
     formatted_time = f"{int(time_remaining * 100):06}"  # 轉為毫秒並固定 6 位數
