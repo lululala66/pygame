@@ -243,7 +243,7 @@ class Flag:
         self.rect = self.image.get_rect()
         self.rect.topleft = (4550, 200)
         self.flagpole_image = pygame.Surface((10, 400), pygame.SRCALPHA)
-        self.flagpole_image.fill((0, 0, 0, 128))
+        self.flagpole_image.fill((0, 0, 0, 0))
         self.flagpole_rect = self.image.get_rect()
         self.flagpole_rect = pygame.Rect(4540, 210, 10, 400)
         self.flagpole_rect.topleft = (4540, 210)
