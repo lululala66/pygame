@@ -6,10 +6,10 @@ FPS = 60
 WIDTH, HEIGHT = 1000, 700
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-PLAYER_SPEED = 8
+PLAYER_SPEED = 7
 PLAYER_SIZE = (50, 70)
 POINT = 0
-START_TIME = 100.0
+START_TIME = 30.0
 
 # 初始化 Pygame
 pygame.init()
@@ -32,7 +32,7 @@ def load_frames(frames_folder, size):
             img = scale_image(img, size)  
             frames.append(img)
     return frames
-
+# 印字
 font_name =pygame.font.match_font('Microsoft YaHei')
 def draw_text(surf, text, size, x, y):
     font = pygame.font.Font(font_name, size)
@@ -67,13 +67,13 @@ class Player:
         self.game_reach = False
         self.is_on_flagpole = False  
         self.sliding_down = False  
-
+    # 跳
     def jump(self):
         if not self.is_jumping and not self.is_on_flagpole:  
             self.is_jumping = True
             jump_sound.play()
             self.jump_velocity = -self.jump_speed
-
+    # 與障礙物碰撞
     def handle_collision(self, obstacles):
         on_ground = False
 
@@ -103,6 +103,8 @@ class Player:
         if self.is_game_over:
             return
         
+        self.moving = False
+
         if self.is_on_flagpole:  # 玩家在旗桿上滑動
             if not self.sliding_down:
                 self.rect.y = self.rect.y
@@ -123,7 +125,7 @@ class Player:
                         self.is_game_over = True
             return
 
-        self.moving = False
+        # 馬桶傳送到水龍頭
         if self.rect.colliderect(toilet.rect)  and self.rect.bottom >= toilet.rect.top and pygame.K_s in keys:
             self.rect.y = tap.rect.y + 40
             self.rect.x = tap.rect.x + 20
@@ -182,7 +184,7 @@ class Player:
 
     def draw(self, screen):
         screen.blit(self.image, self.rect.topleft)
-
+# 把背景接在一起
 class Background:
     def __init__(self, frames):
         self.frames = frames
@@ -247,7 +249,7 @@ class Flag:
         self.flagpole_rect = self.image.get_rect()
         self.flagpole_rect = pygame.Rect(4540, 210, 10, 400)
         self.flagpole_rect.topleft = (4540, 210)
-        self.is_flag_moving = False  # 旗子是否正在下降
+        self.is_flag_moving = False  
         self.touch = False
 
     def update(self, player, background):
@@ -256,12 +258,12 @@ class Flag:
             if background.backgrounds[4][1].x > 0:
                 self.rect.x -= PLAYER_SPEED 
                 self.flagpole_rect.x -= PLAYER_SPEED 
-
+        # 玩家是否碰到旗桿
         if player.rect.colliderect(self.flagpole_rect):
             player.is_on_flagpole = True
             player.stop = True
             self.is_flag_moving = True
-
+        # 旗子是否正在下降
         if self.is_flag_moving:
             if self.rect.y < HEIGHT - 180:
                 self.rect.y += 2
@@ -271,7 +273,7 @@ class Flag:
     def draw(self, screen):
         screen.blit(self.flagpole_image, self.flagpole_rect.topleft)
         screen.blit(self.image, self.rect.topleft)
-
+        
 class Toilet:
     def __init__(self):
         image = pygame.image.load("toilet.png").convert_alpha()  # 使用 convert_alpha() 以保留透明度
@@ -291,7 +293,7 @@ class Toilet:
 
 class Tap:
     def __init__(self):
-        image = pygame.image.load("tap.png").convert_alpha()  # 使用 convert_alpha() 以保留透明度
+        image = pygame.image.load("tap.png").convert_alpha()  
         img = scale_image(image, (60, 40))
         self.image = img
         self.rect = self.image.get_rect()
@@ -305,9 +307,10 @@ class Tap:
 
     def draw(self, screen):
         screen.blit(self.image, self.rect.topleft)
+
 class Coin:
     def __init__(self, x, y):
-        image = pygame.image.load("coin.png").convert_alpha()  # 使用 convert_alpha() 以保留透明度
+        image = pygame.image.load("coin.png").convert_alpha()  
         img = scale_image(image, (50, 50))
         self.image = img
         self.rect = self.image.get_rect()
@@ -321,9 +324,9 @@ class Coin:
 
     def draw(self, screen):
         screen.blit(self.image, self.rect.topleft)
-
+    # 是否與玩家碰撞
     def check_collision(self, player):
-        return self.rect.colliderect(player.rect)  # 检查与玩家的碰撞
+        return self.rect.colliderect(player.rect) 
 
 class EntryScreen:
     def __init__(self, screen, image_path, font_path, font_size=74):
@@ -348,6 +351,7 @@ class EntryScreen:
             self.screen.blit(self.image, (0, 0)) 
             self.screen.blit(self.text_surface, self.text_rect)  
             pygame.display.flip() 
+
 class GameOverScreen:
     def __init__(self, screen):
         self.screen = screen
@@ -366,7 +370,7 @@ class GameOverScreen:
             self.screen.blit(text_surface, text_rect)
             pygame.display.flip()
             pygame.time.delay(2000)
-# 創建玩家和背景
+# 創建基礎物件
 obstacles = []
 coins = []
 monsters = []
@@ -374,15 +378,16 @@ player = Player()
 toilet = Toilet()
 tap =Tap()
 flag = Flag()
+# 創建障礙物和錢幣和怪物
 obstacles.append(Obstacle((WIDTH+480, 100), 0, 610))
 obstacles.append(Obstacle((315, 45), 480, 430))
 obstacles.append(Obstacle((265, 43), 735, 291))
-obstacles.append(Obstacle((60, 47), 1435, 570)) #pipe
+obstacles.append(Obstacle((60, 47), 1435, 570)) # toilet
 obstacles.append(Obstacle((268, 43), 1275, 375))
 obstacles.append(Obstacle((268, 43), 1613, 212))
-obstacles.append(Obstacle((60, 40), 1543, 375)) #pipe
+obstacles.append(Obstacle((60, 40), 1543, 375)) # tap
 obstacles.append(Obstacle((500, 100), 1855, 610))
-#stair
+# stair
 obstacles.append(Obstacle((355, 43), 2100, 567))
 obstacles.append(Obstacle((325, 43), 2145, 524))
 obstacles.append(Obstacle((285, 43), 2190, 483))
@@ -390,7 +395,7 @@ obstacles.append(Obstacle((240, 45), 2235, 448))
 obstacles.append(Obstacle((195, 46), 2280, 403))
 obstacles.append(Obstacle((145, 43), 2325, 358))
 obstacles.append(Obstacle((98, 43), 2375, 315))
-#stair
+# stair
 obstacles.append(Obstacle((375, 43), 2570, 567))
 obstacles.append(Obstacle((325, 43), 2570, 524))
 obstacles.append(Obstacle((285, 43), 2570, 483))
@@ -398,7 +403,7 @@ obstacles.append(Obstacle((240, 46), 2570, 448))
 obstacles.append(Obstacle((195, 45), 2570, 403))
 obstacles.append(Obstacle((145, 43), 2570, 358))
 obstacles.append(Obstacle((98, 43), 2570, 315))
-#stair
+# stair
 obstacles.append(Obstacle((325, 43), WIDTH*4+45, 567))
 obstacles.append(Obstacle((280, 43), WIDTH*4+90, 524))
 obstacles.append(Obstacle((230, 43), WIDTH*4+140, 483))
@@ -423,7 +428,7 @@ background = Background(background_frames)
 game_over_screen = GameOverScreen(screen)
 
 entry_screen = EntryScreen(screen, "entryscream.png", font_name)
-
+# 顯示初始畫面
 entry_screen.show()
 # 遊戲主循環
 running = True
@@ -443,7 +448,7 @@ while running:
                 player.jump()
         if event.type == pygame.KEYUP:
             keys_pressed.discard(event.key)
-            
+    # 計時器
     time_remaining -= clock.get_time() / 1000  
     if time_remaining <= 0:
         time_remaining = 0  
@@ -453,7 +458,7 @@ while running:
         game_over_screen.show(player)
         running = False
         continue
-
+    # 物件更新
     player.update(keys_pressed, background, obstacles, toilet, tap, monsters, flag)
     flag.update(player, background)
     tap.update(player, background)
@@ -465,12 +470,13 @@ while running:
         if coin.check_collision(player):
             POINT += 100
             coins.remove(coin)
-
     for coin in coins:
         coin.update(player, background)
     for monster in monsters:
         monster.update(player, background)
+    
     screen.fill(BLACK)
+    # 劃出物件
     background.draw(screen)
     for obstacle in obstacles:
         obstacle.draw(screen)
@@ -488,6 +494,6 @@ while running:
     timer_surface = timer_font.render(formatted_time, True, (255, 255, 255))
     screen.blit(timer_surface, (WIDTH - 200, 10)) 
 
-    pygame.display.flip()  # 更新屏幕
+    pygame.display.flip()  
 
 pygame.quit()
