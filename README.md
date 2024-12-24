@@ -1,4 +1,4 @@
-我們的遊戲是一個簡易版的馬力歐\
+這是一款簡易版的馬力歐遊戲\
 先設計玩家功能\
 設定,跳躍,所有的碰撞
 ![co1](https://github.com/user-attachments/assets/cf1af59a-7bed-43bc-be64-daea443a3848)
