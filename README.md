@@ -8,3 +8,7 @@
 終點的旗幟\
 讓人物能夠碰到旗桿等到旗幟下來時才跟著下降且計算分數
 ![3](https://github.com/user-attachments/assets/32865bf7-ccaf-4462-8d2a-de4782ef766d)
+障礙物也是屏障\
+以防人物跑到不該跑的地方
+![4](https://github.com/user-attachments/assets/904e6f74-14e5-4cd7-a6ee-a145ba39e820)
+剩下就是一些基本的架構了
